@@ -1,0 +1,77 @@
+{
+  "entities": {
+    "Config": {
+      "title": "Configurations",
+      "description": "Global settings for the building structure",
+      "type": "object",
+      "properties": {
+        "floors": { "type": "number", "description": "Number of floors" },
+        "aptsPerFloor": { "type": "number", "description": "Apartments per floor" },
+        "maxKeysOut": { "type": "number", "description": "Maximum number of keys that can be out simultaneously" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["floors", "aptsPerFloor"]
+    },
+    "KeyStatus": {
+      "title": "Key Status",
+      "description": "Current status of keys for an apartment",
+      "type": "object",
+      "properties": {
+        "apartmentId": { "type": "string", "description": "Format: F-AA (Floor-Apartment)" },
+        "isOut": { "type": "boolean" },
+        "currentHolder": { "type": "string" },
+        "holderType": { "type": "string", "enum": ["Resident", "Renovation Company"] },
+        "outAt": { "type": "string", "format": "date-time" },
+        "returnDeadline": { "type": "string", "format": "date-time", "description": "Expected return time" },
+        "lastReturnedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["apartmentId", "isOut"]
+    },
+    "KeyLog": {
+      "title": "Key Log",
+      "description": "Checkout and checkin history",
+      "type": "object",
+      "properties": {
+        "apartmentId": { "type": "string" },
+        "holder": { "type": "string" },
+        "holderType": { "type": "string" },
+        "type": { "type": "string", "enum": ["Checkout", "Checkin"] },
+        "timestamp": { "type": "string", "format": "date-time" }
+      },
+      "required": ["apartmentId", "holder", "type", "timestamp"]
+    },
+    "Visit": {
+      "title": "Visit",
+      "description": "Scheduled visits",
+      "type": "object",
+      "properties": {
+        "apartmentId": { "type": "string" },
+        "visitorName": { "type": "string" },
+        "visitorType": { "type": "string", "enum": ["Resident", "Renovation Company"] },
+        "scheduledAt": { "type": "string", "format": "date-time" },
+        "status": { "type": "string", "enum": ["Scheduled", "Completed", "Cancelled"] },
+        "notes": { "type": "string" }
+      },
+      "required": ["apartmentId", "visitorName", "scheduledAt", "status"]
+    },
+    "Admin": {
+      "title": "Administrator",
+      "description": "Users with full access to the system",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string" },
+        "name": { "type": "string" },
+        "addedAt": { "type": "string", "format": "date-time" },
+        "addedBy": { "type": "string" }
+      },
+      "required": ["email"]
+    }
+  },
+  "firestore": {
+    "settings/global": { "schema": "Config", "description": "Global building configuration" },
+    "keyStatus/{aptId}": { "schema": "KeyStatus", "description": "Current key status per apartment" },
+    "keyLogs/{logId}": { "schema": "KeyLog", "description": "History of key movements" },
+    "visits/{visitId}": { "schema": "Visit", "description": "Scheduled visits" },
+    "admins/{userId}": { "schema": "Admin", "description": "System administrators" }
+  }
+}

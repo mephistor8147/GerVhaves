@@ -1,0 +1,6 @@
+{
+  "name": "Gerenciador de Chaves",
+  "description": "Aplicativo para controle de entrega e devolução de chaves, agendamento de visitas e configuração de andares do condomínio.",
+  "requestFramePermissions": [],
+  "majorCapabilities": []
+}
