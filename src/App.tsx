@@ -8,7 +8,7 @@ import {
   auth, db, handleFirestoreError, OperationType 
 } from './lib/firebase';
 import { 
-  signInWithPopup, GoogleAuthProvider, onAuthStateChanged, User, signOut 
+  signInWithPopup, GoogleAuthProvider, onAuthStateChanged, User, signOut, signInWithEmailAndPassword 
 } from 'firebase/auth';
 import { 
   doc, setDoc, getDoc, collection, onSnapshot, addDoc, query, orderBy, limit, serverTimestamp, Timestamp, getDocs, deleteDoc 
@@ -30,6 +30,10 @@ function cn(...inputs: ClassValue[]) {
 export default function App() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loginEmail, setLoginEmail] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
+  const [loginError, setLoginError] = useState('');
+  const [isLoginLoading, setIsLoginLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<'dashboard' | 'keys' | 'visits' | 'setup' | 'history' | 'reports'>('dashboard');
   
   // Data state
@@ -145,10 +149,31 @@ export default function App() {
 
   const handleLogin = async () => {
     const provider = new GoogleAuthProvider();
+    setLoginError('');
+    setIsLoginLoading(true);
     try {
       await signInWithPopup(auth, provider);
     } catch (error) {
       console.error("Login failed", error);
+      setLoginError('Falha no login com Google.');
+    } finally {
+      setIsLoginLoading(false);
+    }
+  };
+
+  const handleEmailLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoginError('');
+    setIsLoginLoading(true);
+    try {
+      await signInWithEmailAndPassword(auth, loginEmail, loginPassword);
+    } catch (error: any) {
+      console.error("Login failed", error);
+      setLoginError(error.code === 'auth/invalid-credential' 
+        ? 'Email ou senha incorretos.' 
+        : 'Ocorreu um erro ao tentar fazer login.');
+    } finally {
+      setIsLoginLoading(false);
     }
   };
 
@@ -175,9 +200,52 @@ export default function App() {
           </div>
           <h1 className="text-3xl font-heading font-bold text-slate-900 mb-2">Gerenciador de Chaves</h1>
           <p className="text-slate-500 mb-8">Controle de chaves e agendamento para condomínios modernos.</p>
+          
+          <form onSubmit={handleEmailLogin} className="space-y-4 mb-6 text-left">
+            {loginError && (
+              <div className="p-3 bg-red-50 text-red-600 rounded-xl text-sm font-medium text-center border border-red-100">
+                {loginError}
+              </div>
+            )}
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Email</label>
+              <input 
+                type="email" required placeholder="seu@email.com"
+                value={loginEmail} onChange={e => setLoginEmail(e.target.value)}
+                className="w-full border border-slate-200 rounded-xl p-3 text-sm focus:ring-2 focus:ring-blue-500 transition-all outline-none bg-slate-50/50"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Senha</label>
+              <input 
+                type="password" required placeholder="Sua senha"
+                value={loginPassword} onChange={e => setLoginPassword(e.target.value)}
+                className="w-full border border-slate-200 rounded-xl p-3 text-sm focus:ring-2 focus:ring-blue-500 transition-all outline-none bg-slate-50/50"
+              />
+            </div>
+            <button
+              type="submit"
+              disabled={isLoginLoading}
+              className="w-full bg-blue-600 text-white py-3 rounded-xl hover:bg-blue-700 transition-all shadow-md shadow-blue-100 font-bold disabled:opacity-50 mt-2"
+            >
+              {isLoginLoading ? 'Entrando...' : 'Entrar'}
+            </button>
+          </form>
+
+          <div className="relative mb-6">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-slate-200"></div>
+            </div>
+            <div className="relative flex justify-center text-xs">
+              <span className="bg-white px-4 text-slate-400 uppercase tracking-widest font-black">Ou</span>
+            </div>
+          </div>
+
           <button
+            type="button"
             onClick={handleLogin}
-            className="w-full flex items-center justify-center gap-3 bg-white border border-slate-200 text-slate-700 py-3 rounded-xl hover:bg-slate-50 transition-colors font-medium"
+            disabled={isLoginLoading}
+            className="w-full flex items-center justify-center gap-3 bg-white border border-slate-200 text-slate-700 py-3 rounded-xl hover:bg-slate-50 transition-colors font-medium disabled:opacity-50"
           >
             <LogIn className="w-5 h-5" />
             Entrar com Google
@@ -248,12 +316,21 @@ export default function App() {
           </div>
 
           <div className="flex items-center gap-3 flex-shrink-0">
-            <div className="hidden sm:flex items-center gap-3 pr-3 border-r border-slate-100">
-              <div className="text-right">
-                <p className="text-xs font-bold text-slate-700 truncate max-w-[120px]">{user.displayName}</p>
+            <div className="flex items-center gap-3 pr-3 border-r border-slate-100">
+              <div className="text-right hidden sm:block">
+                <p className="text-xs font-bold text-slate-700 truncate max-w-[120px]">{user.displayName || user.email?.split('@')[0]}</p>
                 <p className="text-[10px] text-slate-400 truncate max-w-[120px]">{user.email}</p>
               </div>
-              <img src={user.photoURL || ''} alt="" className="w-8 h-8 rounded-full border border-slate-200 ring-2 ring-slate-50" />
+              <div className="sm:hidden text-right">
+                <p className="text-xs font-bold text-slate-700 truncate max-w-[100px]">{user.displayName || user.email?.split('@')[0]}</p>
+              </div>
+              {user.photoURL ? (
+                <img src={user.photoURL} alt="" className="w-8 h-8 rounded-full border border-slate-200 ring-2 ring-slate-50 object-cover" />
+              ) : (
+                <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xs font-bold uppercase ring-2 ring-slate-50">
+                  {(user.displayName || user.email || '?').charAt(0)}
+                </div>
+              )}
             </div>
             <button 
               onClick={handleLogout}
